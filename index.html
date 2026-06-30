@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тренажер: Ступені Окиснення</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@500;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        .chem-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Glow animation for highlighted elements */
+        @keyframes target-glow {
+            0%, 100% { border-color: #f59e0b; box-shadow: 0 0 14px rgba(245, 158, 11, 0.5); }
+            50% { border-color: #d97706; box-shadow: 0 0 24px rgba(245, 158, 11, 0.85); }
+        }
+        .active-target {
+            animation: target-glow 1.8s infinite ease-in-out;
+        }
+        /* Shake animation for incorrect answer */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-indigo-100 selection:text-indigo-900">
+
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm transition-all duration-300">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-tr from-indigo-600 to-violet-500 p-2.5 rounded-xl text-white shadow-md shadow-indigo-100">
+                    <i data-lucide="beaker" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-slate-800">Хімічний Вектор</h1>
+                    <p class="text-xs text-slate-500 font-medium">Інтерактивний тренажер ступенів окиснення</p>
+                </div>
+            </div>
+            
+            <!-- Tabs / Navigation -->
+            <nav class="flex bg-slate-100 p-1 rounded-xl border border-slate-200/60 w-full sm:w-auto">
+                <button onclick="switchTab('learn')" id="tab-learn" class="tab-btn flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-white text-indigo-600 shadow-sm">
+                    <i data-lucide="graduation-cap" class="w-4 h-4"></i>
+                    <span>Навчання</span>
+                </button>
+                <button onclick="switchTab('quiz')" id="tab-quiz" class="tab-btn flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 transition-all duration-200">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                    <span>Тренажер</span>
+                </button>
+                <button onclick="switchTab('rules')" id="tab-rules" class="tab-btn flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 transition-all duration-200">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    <span>Правила</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-6 md:py-10 flex flex-col gap-6">
+        
+        <!-- Gamification Status Bar -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div class="bg-amber-100 text-amber-700 p-2 rounded-lg">
+                    <i data-lucide="award" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Звання</div>
+                    <div id="user-rank" class="text-sm font-extrabold text-slate-700">Юний хімік</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-6">
+                <!-- Streak -->
+                <div class="flex items-center gap-2 bg-rose-50 border border-rose-100 px-3.5 py-1.5 rounded-xl">
+                    <i data-lucide="flame" class="w-5 h-5 text-rose-500 fill-rose-500 animate-pulse"></i>
+                    <span id="stat-streak" class="text-base font-extrabold text-rose-600">0</span>
+                    <span class="text-xs text-rose-500 font-semibold hidden sm:inline">серія</span>
+                </div>
+                <!-- XP -->
+                <div class="flex items-center gap-2 bg-indigo-50 border border-indigo-100 px-3.5 py-1.5 rounded-xl">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-indigo-500"></i>
+                    <span id="stat-xp" class="text-base font-extrabold text-indigo-600">0</span>
+                    <span class="text-xs text-indigo-500 font-semibold">XP</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION: LEARN (STEP-BY-STEP) -->
+        <section id="section-learn" class="tab-content flex flex-col lg:flex-row gap-6">
+            <!-- Left Panel: Guided Walkthrough -->
+            <div class="flex-grow lg:w-3/5 bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+                        <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider">Покроковий алгоритм</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="prevLearnCompound()" class="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition text-slate-600">
+                                <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                            </button>
+                            <span id="learn-index" class="text-sm font-semibold text-slate-500">1 / 10</span>
+                            <button onclick="nextLearnCompound()" class="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition text-slate-600">
+                                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Formula Display (High Contrast, Massive Font) -->
+                    <div class="text-center py-8 bg-slate-900 rounded-2xl shadow-inner relative overflow-hidden flex flex-col items-center justify-center">
+                        <div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
+                        <div class="text-xs text-indigo-400 font-bold uppercase tracking-widest mb-2">Формула речовини</div>
+                        <div id="learn-formula" class="chem-font text-5xl sm:text-6xl font-black text-white tracking-widest flex items-baseline gap-1 select-none py-4">
+                            <!-- Injected by JS -->
+                        </div>
+                        <div id="learn-compound-name" class="mt-2 text-sm text-slate-400 font-semibold">
+                            <!-- Name -->
+                        </div>
+                    </div>
+
+                    <!-- Progress/Equation Builder Visual -->
+                    <div class="mt-8 bg-slate-50 rounded-2xl p-4 border border-slate-200/60">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-xs text-slate-400 font-bold uppercase tracking-wider">Рівняння електронейтральності</h3>
+                            <span class="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">Сума = 0</span>
+                        </div>
+                        <div id="learn-equation-display" class="chem-font text-lg md:text-xl font-bold text-slate-700 text-center flex flex-wrap justify-center items-center gap-1 py-2">
+                            <!-- e.g. 2·(+1) + S + 4·(-2) = 0 -->
+                        </div>
+                    </div>
+
+                    <!-- Main Guided Task Prompt -->
+                    <div class="mt-6">
+                        <div class="flex gap-3 items-start bg-indigo-50/50 border border-indigo-100/60 p-4 rounded-xl">
+                            <div class="bg-indigo-100 text-indigo-700 p-1.5 rounded-lg mt-0.5">
+                                <i data-lucide="help-circle" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">Поточний крок:</h4>
+                                <p id="learn-step-prompt" class="text-slate-600 text-sm mt-1">Визначте ступінь окиснення Гідрогену...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Keyboard / Controls -->
+                <div class="mt-8 border-t border-slate-100 pt-6">
+                    <div id="learn-options-container" class="grid grid-cols-4 sm:grid-cols-6 gap-2.5">
+                        <!-- Keyboard injected dynamically -->
+                    </div>
+                    <div id="learn-message-box" class="mt-4 p-4 rounded-xl text-sm font-semibold text-center hidden transition-all duration-300">
+                        <!-- Success/failure alert box -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Compound Steps Details -->
+            <div class="lg:w-2/5 flex flex-col gap-6">
+                <!-- Step tracker cards -->
+                <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                    <h3 class="font-bold text-slate-800 text-base mb-4 flex items-center gap-2">
+                        <i data-lucide="list-todo" class="text-indigo-600 w-5 h-5"></i>
+                        Послідовність розрахунку
+                    </h3>
+                    <div id="learn-steps-list" class="flex flex-col gap-4">
+                        <!-- Steps with active, pending or success states -->
+                    </div>
+                </div>
+
+                <!-- Concept Alert Box -->
+                <div class="bg-gradient-to-tr from-slate-900 to-indigo-950 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                    <div class="absolute -right-10 -bottom-10 opacity-10">
+                        <i data-lucide="atom" class="w-40 h-40"></i>
+                    </div>
+                    <h3 class="font-bold text-base mb-2 flex items-center gap-1.5">
+                        <span class="bg-amber-500 w-2.5 h-2.5 rounded-full animate-ping mr-1"></span>
+                        Золоте правило методики
+                    </h3>
+                    <p class="text-indigo-200 text-xs leading-relaxed mb-4">
+                        Спочатку надписуємо ступені окиснення елементів з <strong>постійним (відомим)</strong> значенням. Лише після цього складаємо рівняння, щоб обчислити невідоме значення змінного елемента.
+                    </p>
+                    <button onclick="switchTab('rules')" class="bg-indigo-600/50 hover:bg-indigo-600 border border-indigo-500/40 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 w-full text-center">
+                        Дивитися шпаргалку правил
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: QUIZ / PRACTICE -->
+        <section id="section-quiz" class="tab-content flex flex-col lg:flex-row gap-6 hidden">
+            <!-- Left Side: Dynamic Tester -->
+            <div class="flex-grow lg:w-3/5 bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm flex flex-col justify-between">
+                <div>
+                    <!-- Mode Header -->
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-amber-50 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider">Експрес Тренування</span>
+                            <span id="quiz-difficulty" class="bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 py-1 rounded-md">Середній</span>
+                        </div>
+                        <div class="text-sm font-semibold text-slate-400">
+                            Питання: <span id="quiz-question-counter" class="text-slate-700 font-bold">1</span>
+                        </div>
+                    </div>
+
+                    <!-- High Contrast Formula Display with custom marker -->
+                    <div class="text-center py-10 bg-slate-900 rounded-2xl shadow-inner relative overflow-hidden flex flex-col items-center justify-center">
+                        <div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
+                        <div class="text-xs text-amber-400 font-bold uppercase tracking-widest mb-4">Знайдіть ступінь окиснення виділеного елемента:</div>
+                        <div id="quiz-formula" class="chem-font text-5xl sm:text-6xl font-black text-white tracking-widest flex items-baseline justify-center gap-1 select-none py-4">
+                            <!-- Injected dynamically with active highlight style -->
+                        </div>
+                        <div id="quiz-hint-name" class="mt-4 text-xs text-slate-400 font-medium"></div>
+                    </div>
+
+                    <!-- Question Target Indicator -->
+                    <div class="mt-6 text-center">
+                        <p class="text-slate-600 font-semibold text-base">
+                            Визначте ступінь окиснення для елемента <span id="quiz-target-element" class="text-amber-500 font-bold text-2xl font-mono px-1">X</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Numerical Keypad for inputs -->
+                <div class="mt-8 border-t border-slate-100 pt-6">
+                    <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-3 text-center">Оберіть значення зі списку</p>
+                    <div class="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                        <button onclick="submitQuizAnswer(-4)" class="quiz-key bg-slate-50 hover:bg-slate-100 active:scale-95 border border-slate-200 text-slate-700 py-3.5 px-2 rounded-xl text-lg font-bold font-mono transition-all duration-150">-4</button>
+                        <button onclick="submitQuizAnswer(-3)" class="quiz-key bg-slate-50 hover:bg-slate-100 active:scale-95 border border-slate-200 text-slate-700 py-3.5 px-2 rounded-xl text-lg font-bold font-mono transition-all duration-150">-3</button>
+                        <button onclick="submitQuizAnswer(-2)" class="quiz-key bg-slate-50 hover:bg-slate-100 active:scale-95 border border-slate-200 text-slate-700 py-3.5 px-2 rounded-xl text-lg font-bold font-mono transition-all duration-150">-2</button>
+                        <button onclick="submitQuizAnswer(-1)" class="quiz-key bg-slate-50 hover:bg-slate-100 active:scale-95 border border-slate-200 text-slate-700 py-3.5 px-2 rounded-xl text-lg font-bold font-mono transition-all duration-150">-1</button>
+                        <button onclick="submitQuizAnswer(0)" class="quiz-key bg-slate-50 hover:bg-slate-100 active:scale-95 border border-slate-200 text-slate-700 py-3.5 px-2 rounded-xl text-lg font-bold font-mono transition-all duration-150">0</button>
+                        <button onclick="submitQuizAnswer(1)" class="quiz-key bg-slate-50 hover:bg-slate-100 active:scale-95 border border-slate-200 text-slate-700 py-3.5 px-2 rounded-xl text-lg font-bold font-mono transition-all duration-150">+1</button>
+                        <button onclick="submitQuizAnswer(2)" class="quiz-key bg-slate-50 hover:bg-slate-100 active:scale-95 border border-slate-200 text-slate-700 py-3.5 px-2 rounded-xl text-lg font-bold font-mono transition-all duration-150">+2</button>
+                        <button onclick="submitQuizAnswer(3)" class="quiz-key bg-slate-50 hover:bg-slate-100 active:scale-95 border border-slate-200 text-slate-700 py-3.5 px-2 rounded-xl text-lg font-bold font-mono transition-all duration-150">+3</button>
+                        <button onclick="submitQuizAnswer(4)" class="quiz-key bg-slate-50 hover:bg-slate-100 active:scale-95 border border-slate-200 text-slate-700 py-3.5 px-2 rounded-xl text-lg font-bold font-mono transition-all duration-150">+4</button>
+                        <button onclick="submitQuizAnswer(5)" class="quiz-key bg-slate-50 hover:bg-slate-100 active:scale-95 border border-slate-200 text-slate-700 py-3.5 px-2 rounded-xl text-lg font-bold font-mono transition-all duration-150">+5</button>
+                        <button onclick="submitQuizAnswer(6)" class="quiz-key bg-slate-50 hover:bg-slate-100 active:scale-95 border border-slate-200 text-slate-700 py-3.5 px-2 rounded-xl text-lg font-bold font-mono transition-all duration-150">+6</button>
+                        <button onclick="submitQuizAnswer(7)" class="quiz-key bg-slate-50 hover:bg-slate-100 active:scale-95 border border-slate-200 text-slate-700 py-3.5 px-2 rounded-xl text-lg font-bold font-mono transition-all duration-150">+7</button>
+                    </div>
+
+                    <!-- Custom Explanation Feedback Panel -->
+                    <div id="quiz-feedback" class="mt-6 p-5 rounded-2xl border hidden flex flex-col gap-3 transition-all duration-300 transform scale-95 opacity-0">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Leaderboard / Statistics -->
+            <div class="lg:w-2/5 flex flex-col gap-6">
+                <!-- Session scoreboard -->
+                <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                    <h3 class="font-bold text-slate-800 text-base mb-4 flex items-center gap-2">
+                        <i data-lucide="bar-chart-3" class="text-amber-500 w-5 h-5"></i>
+                        Поточна сесія
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                            <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Правильно</div>
+                            <div id="session-correct" class="text-3xl font-black text-emerald-600 mt-1">0</div>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                            <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Помилок</div>
+                            <div id="session-wrong" class="text-3xl font-black text-rose-500 mt-1">0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 border-t border-slate-100 pt-4">
+                        <div class="flex items-center justify-between text-sm text-slate-500 mb-1.5">
+                            <span>Рівень точності</span>
+                            <span id="quiz-accuracy-text" class="font-bold text-slate-700">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5">
+                            <div id="quiz-accuracy-bar" class="bg-gradient-to-r from-emerald-400 to-teal-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Motivational Badge Locker -->
+                <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                    <h3 class="font-bold text-slate-800 text-base mb-4 flex items-center gap-2">
+                        <i data-lucide="medal" class="text-indigo-600 w-5 h-5"></i>
+                        Відкриті досягнення
+                    </h3>
+                    <div id="badge-container" class="grid grid-cols-2 gap-3">
+                        <!-- Badge items dynamically updated -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: RULES / CHEATSHEET -->
+        <section id="section-rules" class="tab-content hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Left Side - Standard rules -->
+            <div class="flex flex-col gap-6">
+                <!-- Intro Card -->
+                <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-3xl p-6 shadow-md">
+                    <h2 class="text-xl font-bold mb-2">Як визначати ступені окиснення?</h2>
+                    <p class="text-indigo-100 text-sm leading-relaxed">
+                        Ступінь окиснення — це умовний заряд атома в речовині, обчислений із припущення, що вона складається з іонів. Використовуйте цей інтерактивний список правил для вирішення будь-яких хімічних завдань.
+                    </p>
+                </div>
+
+                <!-- Rules Accordion -->
+                <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+                    <h3 class="font-extrabold text-slate-800 text-base border-b border-slate-100 pb-2">Постійні ступені окиснення</h3>
+                    
+                    <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                        <div class="flex items-center gap-2 text-indigo-700 font-bold text-sm mb-1">
+                            <span class="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-md font-mono">1</span>
+                            Лужні метали (I-A група)
+                        </div>
+                        <p class="text-xs text-slate-600">
+                            Атоми металiв Літію (Li), Натрію (Na), Калію (K), Рубідію (Rb), Цезію (Cs) завжди мають ступінь окиснення <strong class="text-slate-900">+1</strong>.
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                        <div class="flex items-center gap-2 text-indigo-700 font-bold text-sm mb-1">
+                            <span class="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-md font-mono">2</span>
+                            Лужноземельні метали (II-A група)
+                        </div>
+                        <p class="text-xs text-slate-600">
+                            Берилій (Be), Магній (Mg), Кальцій (Ca), Стронцій (Sr), Барій (Ba) завжди виявляють ступінь окиснення <strong class="text-slate-900">+2</strong>.
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                        <div class="flex items-center gap-2 text-indigo-700 font-bold text-sm mb-1">
+                            <span class="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-md font-mono">3</span>
+                            Алюміній та Флуор
+                        </div>
+                        <p class="text-xs text-slate-600">
+                            Алюміній (Al) у сполуках має ступінь окиснення <strong class="text-slate-900">+3</strong>. Флуор (F), як найактивніший неметал, завжди виявляє лише <strong class="text-slate-900">-1</strong>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side - Exceptions & Equations -->
+            <div class="flex flex-col gap-6">
+                <!-- Exceptions Card -->
+                <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+                    <h3 class="font-extrabold text-slate-800 text-base border-b border-slate-100 pb-2">Найважливіші змінні та винятки</h3>
+
+                    <div class="bg-amber-50/50 rounded-2xl p-4 border border-amber-100/60">
+                        <div class="flex items-center gap-2 text-amber-800 font-bold text-sm mb-1">
+                            <span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-md font-mono">Гідроген</span>
+                            Майже завжди має +1
+                        </div>
+                        <p class="text-xs text-slate-600 mb-2">
+                            У сполуках з неметалами Гідроген має ступінь окиснення <strong class="text-amber-900">+1</strong> (наприклад, $H_2O, HCl, NH_3$).
+                        </p>
+                        <p class="text-xs text-slate-600 bg-amber-100/50 p-2 rounded-lg italic">
+                            ⚠️ <strong>Виняток:</strong> у гідридах металів (LiH, CaH₂) він дорівнює <strong class="text-amber-900">-1</strong>.
+                        </p>
+                    </div>
+
+                    <div class="bg-sky-50/50 rounded-2xl p-4 border border-sky-100/60">
+                        <div class="flex items-center gap-2 text-sky-800 font-bold text-sm mb-1">
+                            <span class="bg-sky-100 text-sky-800 text-xs px-2 py-0.5 rounded-md font-mono">Оксиген</span>
+                            Майже завжди має -2
+                        </div>
+                        <p class="text-xs text-slate-600 mb-2">
+                            У більшості сполук Оксиген має ступінь окиснення <strong class="text-sky-900">-2</strong> (наприклад, $CO_2, H_2SO_4$).
+                        </p>
+                        <p class="text-xs text-slate-600 bg-sky-100/50 p-2 rounded-lg italic space-y-1">
+                            <span>⚠️ <strong>Винятки:</strong></span><br>
+                            <span>1. У пероксидах (наприклад, $H_2O_2$) Оксиген має <strong class="text-sky-900">-1</strong>.</span><br>
+                            <span>2. У сполуці з Флуором ($OF_2$) Оксиген виявляє унікальний ступісь <strong class="text-sky-900">+2</strong>!</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Helper algorithm with parentheses -->
+                <div class="bg-slate-900 text-slate-100 rounded-3xl p-6 shadow-sm">
+                    <h3 class="font-bold text-base mb-3 flex items-center gap-2 text-white">
+                        <i data-lucide="file-text" class="text-indigo-400 w-5 h-5"></i>
+                        Як розрахувати формули з дужками?
+                    </h3>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                        Якщо у формулі є дужки, наприклад, $Al_2(SO_4)_3$, число за дужками (індекс) відноситься до всього вмісту дужок:
+                    </p>
+                    <ul class="text-xs text-slate-300 space-y-2 list-disc list-inside">
+                        <li>Сульфуру ($S$) у формулі: $1 \cdot 3 = 3$ атоми.</li>
+                        <li>Оксигену ($O$) у формулі: $4 \cdot 3 = 12$ атомів.</li>
+                        <li>Складаємо рівняння балансу: $2 \cdot (+3) + 3 \cdot S + 12 \cdot (-2) = 0$.</li>
+                        <li>Знаходимо ступінь окиснення: $6 + 3S - 24 = 0 \implies 3S = +18 \implies S = +6$.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-6 mt-12">
+        <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-400 font-medium">
+            © 2026 Хімічний Вектор. Розроблено для інтерактивної підготовки до занять та іспитів з хімії.
+        </div>
+    </footer>
+
+    <!-- Audio Synthesis Engine and App Scripts -->
+    <script>
+        // Database of compounds for Learn & Quiz modes
+        const compoundsDb = [
+            {
+                formula: "H2SO4",
+                name: "Сульфатна кислота",
+                elements: [
+                    { symbol: "H", count: 2, state: 1, fixed: true, rule: "Гідроген у сполуках з неметалами має ступінь окиснення +1" },
+                    { symbol: "O", count: 4, state: -2, fixed: true, rule: "Оксиген у більшості сполук виявляє ступінь окиснення -2" },
+                    { symbol: "S", count: 1, state: 6, fixed: false, rule: "Шуканий Сульфур обчислюється з балансу: 2·(+1) + S + 4·(-2) = 0" }
+                ],
+                targetElement: "S",
+                difficulty: "Середній"
+            },
+            {
+                formula: "K2Cr2O7",
+                name: "Калій дихромат (хромпік)",
+                elements: [
+                    { symbol: "K", count: 2, state: 1, fixed: true, rule: "Калій як лужний метал завжди має постійний ступінь окиснення +1" },
+                    { symbol: "O", count: 7, state: -2, fixed: true, rule: "Оксиген майже завжди має ступінь окиснення -2" },
+                    { symbol: "Cr", count: 2, state: 6, fixed: false, rule: "Шуканий Хром розраховується з рівняння: 2·(+1) + 2·Cr + 7·(-2) = 0" }
+                ],
+                targetElement: "Cr",
+                difficulty: "Профі"
+            },
+            {
+                formula: "Al2(SO4)3",
+                name: "Алюміній сульфат",
+                elements: [
+                    { symbol: "Al", count: 2, state: 3, fixed: true, rule: "Алюміній завжди має постійний ступінь окиснення +3" },
+                    { symbol: "O", count: 12, state: -2, fixed: true, rule: "Оксиген у дужках множиться на 3: всього 12 атомів із зарядом -2 кожен" },
+                    { symbol: "S", count: 3, state: 6, fixed: false, rule: "Сульфур у дужках множиться на 3. Обчислюємо з рівняння: 2·(+3) + 3·S + 12·(-2) = 0" }
+                ],
+                targetElement: "S",
+                difficulty: "Профі"
+            },
+            {
+                formula: "Ca3(PO4)2",
+                name: "Кальцій ортофосфат",
+                elements: [
+                    { symbol: "Ca", count: 3, state: 2, fixed: true, rule: "Кальцій як лужноземельний метал завжди має постійний ступінь окиснення +2" },
+                    { symbol: "O", count: 8, state: -2, fixed: true, rule: "Оксиген у дужках множиться на 2: всього 8 атомів із зарядом -2 кожен" },
+                    { symbol: "P", count: 2, state: 5, fixed: false, rule: "Фосфор у дужках множиться на 2. Обчислюємо з рівняння: 3·(+2) + 2·P + 8·(-2) = 0" }
+                ],
+                targetElement: "P",
+                difficulty: "Профі"
+            },
+            {
+                formula: "Ba(NO3)2",
+                name: "Барій нітрат",
+                elements: [
+                    { symbol: "Ba", count: 1, state: 2, fixed: true, rule: "Барій як лужноземельний метал завжди має постійний ступінь окиснення +2" },
+                    { symbol: "O", count: 6, state: -2, fixed: true, rule: "Оксиген у дужках множиться на 2: всього 6 атомів із зарядом -2" },
+                    { symbol: "N", count: 2, state: 5, fixed: false, rule: "Нітроген у дужках множиться на 2. Обчислюємо з рівняння: 1·(+2) + 2·N + 6·(-2) = 0" }
+                ],
+                targetElement: "N",
+                difficulty: "Профі"
+            },
+            {
+                formula: "Fe(OH)3",
+                name: "Ферум(III) гідроксид",
+                elements: [
+                    { symbol: "H", count: 3, state: 1, fixed: true, rule: "Гідроген у складі гідроксогруп має постійний ступінь окиснення +1" },
+                    { symbol: "O", count: 3, state: -2, fixed: true, rule: "Оксиген у складі гідроксогруп виявляє постійний ступінь окиснення -2" },
+                    { symbol: "Fe", count: 1, state: 3, fixed: false, rule: "Шуканий Ферум обчислюється з рівняння: Fe + 3·(-2) + 3·(+1) = 0" }
+                ],
+                targetElement: "Fe",
+                difficulty: "Середній"
+            },
+            {
+                formula: "KMnO4",
+                name: "Калій перманганат (марганцівка)",
+                elements: [
+                    { symbol: "K", count: 1, state: 1, fixed: true, rule: "Калій як лужний метал (I-A група) завжди має +1" },
+                    { symbol: "O", count: 4, state: -2, fixed: true, rule: "Оксиген майже завжди має ступінь окиснення -2" },
+                    { symbol: "Mn", count: 1, state: 7, fixed: false, rule: "Шуканий Манган обчислюється з рівняння: 1·(+1) + Mn + 4·(-2) = 0" }
+                ],
+                targetElement: "Mn",
+                difficulty: "Профі"
+            },
+            {
+                formula: "CO2",
+                name: "Карбон(IV) оксид (вуглекислий газ)",
+                elements: [
+                    { symbol: "O", count: 2, state: -2, fixed: true, rule: "Оксиген має постійний ступінь окиснення -2" },
+                    { symbol: "C", count: 1, state: 4, fixed: false, rule: "Шуканий Карбон розраховується як: C + 2·(-2) = 0" }
+                ],
+                targetElement: "C",
+                difficulty: "Початківець"
+            },
+            {
+                formula: "HNO3",
+                name: "Нітратна кислота",
+                elements: [
+                    { symbol: "H", count: 1, state: 1, fixed: true, rule: "Гідроген має постійний ступінь окиснення +1" },
+                    { symbol: "O", count: 3, state: -2, fixed: true, rule: "Оксиген має ступінь окиснення -2" },
+                    { symbol: "N", count: 1, state: 5, fixed: false, rule: "Нітроген розраховується як: 1·(+1) + N + 3·(-2) = 0" }
+                ],
+                targetElement: "N",
+                difficulty: "Середній"
+            },
+            {
+                formula: "NH3",
+                name: "Аміак",
+                elements: [
+                    { symbol: "H", count: 3, state: 1, fixed: true, rule: "Гідроген з неметалами завжди виявляє +1" },
+                    { symbol: "N", count: 1, state: -3, fixed: false, rule: "Нітроген утворює бінарну сполуку: N + 3·(+1) = 0" }
+                ],
+                targetElement: "N",
+                difficulty: "Початківець"
+            },
+            {
+                formula: "Na2CO3",
+                name: "Натрій карбонат (кальцинована сода)",
+                elements: [
+                    { symbol: "Na", count: 2, state: 1, fixed: true, rule: "Натрій як лужний метал завжди має ступінь окиснення +1" },
+                    { symbol: "O", count: 3, state: -2, fixed: true, rule: "Оксиген виявляє ступінь окиснення -2" },
+                    { symbol: "C", count: 1, state: 4, fixed: false, rule: "Карбон обчислюємо з рівняння: 2·(+1) + C + 3·(-2) = 0" }
+                ],
+                targetElement: "C",
+                difficulty: "Середній"
+            },
+            {
+                formula: "HClO4",
+                name: "Хлоратна(VII) кислота",
+                elements: [
+                    { symbol: "H", count: 1, state: 1, fixed: true, rule: "Гідроген має постійний ступінь окиснення +1" },
+                    { symbol: "O", count: 4, state: -2, fixed: true, rule: "Оксиген має ступінь окиснення -2" },
+                    { symbol: "Cl", count: 1, state: 7, fixed: false, rule: "Хлор обчислюємо з рівняння: 1·(+1) + Cl + 4·(-2) = 0" }
+                ],
+                targetElement: "Cl",
+                difficulty: "Середній"
+            },
+            {
+                formula: "OF2",
+                name: "Оксиген дифторид (Увага: виняток!)",
+                elements: [
+                    { symbol: "F", count: 2, state: -1, fixed: true, rule: "Флуор як найактивніший неметал завжди має тільки -1" },
+                    { symbol: "O", count: 1, state: 2, fixed: false, rule: "Тут Оксиген є менш електронегативним, ніж Флуор, тому виявляє нетиповий ступінь +2" }
+                ],
+                targetElement: "O",
+                difficulty: "Профі"
+            },
+            {
+                formula: "H2O2",
+                name: "Гідроген пероксид (водню перекис)",
+                elements: [
+                    { symbol: "H", count: 2, state: 1, fixed: true, rule: "Гідроген має постійний ступінь окиснення +1" },
+                    { symbol: "O", count: 2, state: -1, fixed: false, rule: "У пероксидах Оксиген має нетиповий ступінь окиснення -1" }
+                ],
+                targetElement: "O",
+                difficulty: "Профі"
+            }
+        ];
+
+        let state = {
+            currentTab: 'learn',
+            learnIndex: 0,
+            learnStep: 0, // Current step index inside the learnStepOrder list
+            learnStepOrder: [], // Will hold sorted indices [fixed first, variable last]
+            learnAccumulatedAnswers: {}, // key: element index, val: selected value
+            quizCurrent: null,
+            quizStepCount: 1,
+            stats: {
+                xp: 0,
+                streak: 0,
+                correct: 0,
+                wrong: 0,
+                badges: []
+            }
+        };
+
+        function playTone(freq, duration, type = 'sine') {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                oscillator.type = type;
+                oscillator.frequency.value = freq;
+                
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                // Browser blocks audio context until user interaction
+            }
+        }
+
+        function playSuccessSound() {
+            playTone(523.25, 0.15, 'triangle'); // C5
+            setTimeout(() => playTone(659.25, 0.2, 'triangle'), 100); // E5
+        }
+
+        function playErrorSound() {
+            playTone(220, 0.3, 'sawtooth'); // A3
+        }
+
+        function switchTab(tabId) {
+            state.currentTab = tabId;
+            
+            // Highlight active navigation tab
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 transition-all duration-200";
+            });
+            const activeTabBtn = document.getElementById(`tab-${tabId}`);
+            if (activeTabBtn) {
+                activeTabBtn.className = "tab-btn flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-white text-indigo-600 shadow-sm";
+            }
+
+            // Show current section, hide others
+            document.querySelectorAll('.tab-content').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            if (tabId === 'rules') {
+                document.getElementById('section-rules').classList.remove('hidden');
+            } else {
+                document.getElementById(`section-${tabId}`).classList.remove('hidden');
+            }
+
+            // Reset or init section specifics
+            if (tabId === 'learn') {
+                initLearnCompound();
+            } else if (tabId === 'quiz') {
+                initQuizCompound();
+            }
+        }
+
+        function formatChemHtml(formula, highlightElement = null) {
+            // High contrast chemical formula renderer with support for brackets and subscripts
+            let html = "";
+            let i = 0;
+            while (i < formula.length) {
+                let char = formula[i];
+                if (char === '(' || char === ')') {
+                    html += `<span class="text-indigo-400 font-bold px-0.5">${char}</span>`;
+                    i++;
+                } else if (char >= 'A' && char <= 'Z') {
+                    let elementSymbol = char;
+                    if (i + 1 < formula.length && formula[i + 1] >= 'a' && formula[i + 1] <= 'z') {
+                        elementSymbol += formula[i + 1];
+                        i++;
+                    }
+                    
+                    const isTarget = (highlightElement && elementSymbol === highlightElement);
+                    const highlightClass = isTarget ? 
+                        "active-target border-2 border-amber-500 bg-amber-500/10 rounded-xl px-1.5 py-0.5 mx-0.5 transition-all text-amber-400 font-bold" : 
+                        "px-0.5 text-white";
+
+                    html += `<span class="${highlightClass}">${elementSymbol}</span>`;
+                    i++;
+                } else if (char >= '0' && char <= '9') {
+                    html += `<sub class="text-xl sm:text-2xl font-extrabold -ml-0.5 mr-0.5 text-indigo-300">${char}</sub>`;
+                    i++;
+                } else {
+                    html += char;
+                    i++;
+                }
+            }
+            return html;
+        }
+
+        function initLearnCompound() {
+            const compound = compoundsDb[state.learnIndex];
+            
+            // Build the pedagogical step order: FIXED elements first, VARIABLE elements last
+            state.learnStepOrder = [];
+            
+            // 1. First add all elements that are "fixed: true" (knowns)
+            compound.elements.forEach((el, index) => {
+                if (el.fixed) state.learnStepOrder.push(index);
+            });
+            
+            // 2. Then add the element that is "fixed: false" (the unknown variable/target)
+            compound.elements.forEach((el, index) => {
+                if (!el.fixed) state.learnStepOrder.push(index);
+            });
+
+            state.learnStep = 0; // Current step index inside the stepOrder
+            state.learnAccumulatedAnswers = {};
+
+            document.getElementById('learn-index').innerText = `${state.learnIndex + 1} / ${compoundsDb.length}`;
+            document.getElementById('learn-formula').innerHTML = formatChemHtml(compound.formula);
+            document.getElementById('learn-compound-name').innerText = compound.name;
+
+            buildStepsList();
+            runCurrentLearnStep();
+        }
+
+        function buildStepsList() {
+            const compound = compoundsDb[state.learnIndex];
+            const stepsContainer = document.getElementById('learn-steps-list');
+            stepsContainer.innerHTML = "";
+
+            const currentElementIndex = state.learnStepOrder[state.learnStep];
+
+            compound.elements.forEach((el, index) => {
+                const isTarget = !el.fixed;
+                const answered = state.learnAccumulatedAnswers[index] !== undefined;
+                let stateStyle = "border-slate-200 bg-slate-50 text-slate-400";
+                let statusIcon = "circle";
+
+                if (index === currentElementIndex) {
+                    stateStyle = "border-indigo-500 bg-indigo-50/50 text-indigo-700 font-semibold ring-2 ring-indigo-500/10 animate-pulse";
+                    statusIcon = "help-circle";
+                } else if (answered) {
+                    stateStyle = "border-emerald-200 bg-emerald-50/50 text-emerald-700 font-semibold";
+                    statusIcon = "check-circle-2";
+                }
+
+                stepsContainer.innerHTML += `
+                    <div class="border rounded-2xl p-4 flex items-center justify-between transition-all duration-300 ${stateStyle}">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="${statusIcon}" class="w-5 h-5 flex-shrink-0"></i>
+                            <div>
+                                <span class="chem-font font-bold text-lg">${el.symbol}</span>
+                                <span class="text-xs block">${el.fixed ? 'Постійний ступінь (відомий)' : 'Шуканий невідомий (змінний)'}</span>
+                            </div>
+                        </div>
+                        <span class="chem-font font-black text-xl">
+                            ${answered ? (state.learnAccumulatedAnswers[index] > 0 ? '+' : '') + state.learnAccumulatedAnswers[index] : (index === currentElementIndex ? '?' : '•')}
+                        </span>
+                    </div>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function runCurrentLearnStep() {
+            const compound = compoundsDb[state.learnIndex];
+            const currentElementIndex = state.learnStepOrder[state.learnStep];
+            const el = compound.elements[currentElementIndex];
+            
+            // Build dynamic algebraic formula based on current knowledge
+            buildAlgebraicEquation(compound);
+
+            // Hide previous message
+            const messageBox = document.getElementById('learn-message-box');
+            messageBox.className = "hidden";
+
+            // Update user prompt based on whether it is a fixed or target step
+            const promptText = el.fixed ? 
+                `Визначте ступінь окиснення для елемента <strong class="chem-font text-indigo-700">${el.symbol}</strong>, який має <strong>постійне (відоме)</strong> значення:` : 
+                `Останній крок! Обчисліть ступінь окиснення для змінного елемента <strong class="chem-font text-indigo-700">${el.symbol}</strong> з отриманого рівняння:`;
+            
+            document.getElementById('learn-step-prompt').innerHTML = `${promptText} <br><span class="text-xs text-slate-500 mt-1.5 block italic">${el.rule}</span>`;
+
+            // Build numerical options
+            const optionsContainer = document.getElementById('learn-options-container');
+            optionsContainer.innerHTML = "";
+
+            const statesOptions = [-4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7];
+            statesOptions.forEach(val => {
+                const label = val > 0 ? `+${val}` : `${val}`;
+                optionsContainer.innerHTML += `
+                    <button onclick="submitLearnStepAnswer(${val})" class="bg-slate-50 hover:bg-indigo-50 active:scale-95 border border-slate-200 hover:border-indigo-200 text-slate-700 hover:text-indigo-700 py-3.5 px-2 rounded-xl text-md font-bold font-mono transition-all duration-150">
+                        ${label}
+                    </button>
+                `;
+            });
+        }
+
+        function buildAlgebraicEquation(compound) {
+            let eqParts = [];
+            const currentElementIndex = state.learnStepOrder[state.learnStep];
+
+            compound.elements.forEach((el, index) => {
+                const answered = state.learnAccumulatedAnswers[index] !== undefined;
+                const multiplier = el.count > 1 ? `${el.count} · ` : '';
+                
+                let stateStr = "?";
+                let colorClass = "text-slate-400";
+
+                if (answered) {
+                    const ans = state.learnAccumulatedAnswers[index];
+                    stateStr = ans >= 0 ? `(+${ans})` : `(${ans})`;
+                    colorClass = "text-emerald-600 font-extrabold";
+                } else if (index === currentElementIndex) {
+                    stateStr = el.fixed ? "?" : el.symbol;
+                    colorClass = "text-indigo-600 font-extrabold underline decoration-dashed decoration-2";
+                } else {
+                    stateStr = el.fixed ? "?" : el.symbol;
+                }
+
+                eqParts.push(`<span class="${colorClass}">${multiplier}${stateStr}</span>`);
+            });
+
+            document.getElementById('learn-equation-display').innerHTML = eqParts.join(" + ") + " = <span class='text-slate-800 font-extrabold'>0</span>";
+        }
+
+        function submitLearnStepAnswer(value) {
+            const compound = compoundsDb[state.learnIndex];
+            const currentElementIndex = state.learnStepOrder[state.learnStep];
+            const currentElement = compound.elements[currentElementIndex];
+            const messageBox = document.getElementById('learn-message-box');
+
+            if (value === currentElement.state) {
+                // Correct!
+                playSuccessSound();
+                state.learnAccumulatedAnswers[currentElementIndex] = value;
+                
+                // Show positive message
+                messageBox.className = "mt-4 p-4 rounded-xl text-sm font-semibold text-center bg-emerald-50 border border-emerald-100 text-emerald-800 animate-bounce";
+                messageBox.innerHTML = `🎉 Правильно! Ступінь окиснення ${currentElement.symbol} дорівнює ${value > 0 ? '+' : ''}${value}.`;
+
+                addXp(15);
+                incrementStreak();
+
+                // Wait shortly then move to next step or complete compound
+                setTimeout(() => {
+                    if (state.learnStep < state.learnStepOrder.length - 1) {
+                        state.learnStep++;
+                        buildStepsList();
+                        runCurrentLearnStep();
+                    } else {
+                        // Compound complete!
+                        playSuccessSound();
+                        messageBox.className = "mt-4 p-5 rounded-xl text-sm font-semibold text-center bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md";
+                        messageBox.innerHTML = `🏆 Чудово! Формулу повністю розв'язано та підраховано! Переходьте до наступної речовини.`;
+                        
+                        addXp(50);
+                        
+                        // Render full finished formula and variables
+                        buildStepsList();
+                        buildAlgebraicEquation(compound);
+                    }
+                }, 1500);
+
+            } else {
+                // Wrong
+                playErrorSound();
+                resetStreak();
+                
+                messageBox.className = "mt-4 p-4 rounded-xl text-sm font-semibold text-center bg-rose-50 border border-rose-100 text-rose-800 animate-shake";
+                messageBox.innerHTML = `❌ Спробуйте ще раз! Перевірте постійні валентності в таблиці правил.`;
+                setTimeout(() => { messageBox.classList.add('hidden'); }, 3000);
+            }
+        }
+
+        function nextLearnCompound() {
+            state.learnIndex = (state.learnIndex + 1) % compoundsDb.length;
+            initLearnCompound();
+        }
+
+        function prevLearnCompound() {
+            state.learnIndex = (state.learnIndex - 1 + compoundsDb.length) % compoundsDb.length;
+            initLearnCompound();
+        }
+
+
+        function initQuizCompound() {
+            // Get random compound from DB that is different if possible
+            let randIndex;
+            do {
+                randIndex = Math.floor(Math.random() * compoundsDb.length);
+            } while (compoundsDb.length > 1 && randIndex === state.quizCurrentIndex);
+            
+            state.quizCurrentIndex = randIndex;
+            state.quizCurrent = compoundsDb[randIndex];
+
+            // Hide feedback panel
+            const fb = document.getElementById('quiz-feedback');
+            fb.classList.add('hidden');
+            fb.style.opacity = "0";
+            fb.style.transform = "scale(0.95)";
+
+            // Update details
+            document.getElementById('quiz-difficulty').innerText = state.quizCurrent.difficulty;
+            
+            // Dynamic theme class for difficulty
+            const diffBadge = document.getElementById('quiz-difficulty');
+            if (state.quizCurrent.difficulty === 'Початківець') {
+                diffBadge.className = "bg-emerald-50 text-emerald-700 text-xs font-semibold px-2.5 py-1 rounded-md";
+            } else if (state.quizCurrent.difficulty === 'Середній') {
+                diffBadge.className = "bg-amber-50 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-md";
+            } else {
+                diffBadge.className = "bg-rose-50 text-rose-700 text-xs font-semibold px-2.5 py-1 rounded-md";
+            }
+
+            document.getElementById('quiz-target-element').innerText = state.quizCurrent.targetElement;
+            document.getElementById('quiz-formula').innerHTML = formatChemHtml(state.quizCurrent.formula, state.quizCurrent.targetElement);
+            document.getElementById('quiz-hint-name').innerText = `(${state.quizCurrent.name})`;
+            
+            // Re-enable keypads
+            document.querySelectorAll('.quiz-key').forEach(btn => btn.disabled = false);
+        }
+
+        function submitQuizAnswer(selectedVal) {
+            // Prevent spamming
+            document.querySelectorAll('.quiz-key').forEach(btn => btn.disabled = true);
+
+            const targetElementObj = state.quizCurrent.elements.find(el => el.symbol === state.quizCurrent.targetElement);
+            const correctState = targetElementObj.state;
+
+            const fb = document.getElementById('quiz-feedback');
+            fb.classList.remove('hidden');
+            
+            // Trigger smooth transition
+            setTimeout(() => {
+                fb.style.opacity = "1";
+                fb.style.transform = "scale(1)";
+            }, 50);
+
+            if (selectedVal === correctState) {
+                // Correct!
+                playSuccessSound();
+                state.stats.correct++;
+                incrementStreak();
+                addXp(25);
+
+                fb.className = "mt-6 p-5 rounded-2xl border bg-emerald-50/50 border-emerald-200 text-emerald-900 flex flex-col gap-2 transition-all duration-300 transform";
+                fb.innerHTML = `
+                    <div class="flex items-center gap-2 text-emerald-700 font-extrabold">
+                        <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+                        <span>Вірно! Ступінь окиснення ${state.quizCurrent.targetElement} = ${correctState > 0 ? '+' : ''}${correctState}</span>
+                    </div>
+                    <p class="text-xs text-slate-600 leading-relaxed mt-1">${targetElementObj.rule}</p>
+                    <button onclick="nextQuizQuestion()" class="mt-3 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition">
+                        <span>Наступна формула</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                `;
+            } else {
+                // Incorrect
+                playErrorSound();
+                state.stats.wrong++;
+                resetStreak();
+
+                fb.className = "mt-6 p-5 rounded-2xl border bg-rose-50/50 border-rose-200 text-rose-900 flex flex-col gap-2 transition-all duration-300 transform";
+                fb.innerHTML = `
+                    <div class="flex items-center gap-2 text-rose-700 font-extrabold">
+                        <i data-lucide="x-circle" class="w-6 h-6"></i>
+                        <span>Помилка! Ваша відповідь: ${selectedVal > 0 ? '+' : ''}${selectedVal}. Правильно: ${correctState > 0 ? '+' : ''}${correctState}</span>
+                    </div>
+                    <p class="text-xs text-slate-600 leading-relaxed mt-1">${targetElementObj.rule}</p>
+                    <button onclick="nextQuizQuestion()" class="mt-3 bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition">
+                        <span>Спробувати іншу</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                `;
+            }
+
+            updateScoreboard();
+            lucide.createIcons();
+        }
+
+        function nextQuizQuestion() {
+            state.quizStepCount++;
+            document.getElementById('quiz-question-counter').innerText = state.quizStepCount;
+            initQuizCompound();
+        }
+
+        function updateScoreboard() {
+            document.getElementById('session-correct').innerText = state.stats.correct;
+            document.getElementById('session-wrong').innerText = state.stats.wrong;
+
+            const total = state.stats.correct + state.stats.wrong;
+            const accuracy = total > 0 ? Math.round((state.stats.correct / total) * 100) : 0;
+            
+            document.getElementById('quiz-accuracy-text').innerText = `${accuracy}%`;
+            document.getElementById('quiz-accuracy-bar').style.width = `${accuracy}%`;
+        }
+
+
+        function addXp(amount) {
+            state.stats.xp += amount;
+            document.getElementById('stat-xp').innerText = state.stats.xp;
+            checkAchievements();
+            updateUserRank();
+        }
+
+        function incrementStreak() {
+            state.stats.streak++;
+            document.getElementById('stat-streak').innerText = state.stats.streak;
+            checkAchievements();
+        }
+
+        function resetStreak() {
+            state.stats.streak = 0;
+            document.getElementById('stat-streak').innerText = 0;
+        }
+
+        function updateUserRank() {
+            let rank = "Юний хімік";
+            if (state.stats.xp >= 120 && state.stats.xp < 300) {
+                rank = "Старший хімік-лаборант";
+            } else if (state.stats.xp >= 300 && state.stats.xp < 600) {
+                rank = "Магістр Окиснення";
+            } else if (state.stats.xp >= 600) {
+                rank = "Професор Хімічних Наук";
+            }
+            document.getElementById('user-rank').innerText = rank;
+        }
+
+        const badgesData = [
+            { id: "first_step", title: "Перша іскра", desc: "Дати 1 правильну відповідь", icon: "activity", requirement: (s) => s.correct >= 1 },
+            { id: "fire_streak", title: "Гаряча серія", desc: "Досягти серії з 3 відповідей поспіль", icon: "flame", requirement: (s) => s.streak >= 3 },
+            { id: "xp_collector", title: "Знавець законів", desc: "Набрати 200 балів досвіду (XP)", icon: "sparkles", requirement: (s) => s.xp >= 200 },
+            { id: "master", title: "Володар Хрому", desc: "Правильно розв'язати 10 сполук", icon: "crown", requirement: (s) => s.correct >= 10 }
+        ];
+
+        function checkAchievements() {
+            badgesData.forEach(badge => {
+                if (!state.stats.badges.includes(badge.id) && badge.requirement(state.stats)) {
+                    state.stats.badges.push(badge.id);
+                    renderBadges();
+                }
+            });
+        }
+
+        function renderBadges() {
+            const container = document.getElementById('badge-container');
+            container.innerHTML = "";
+
+            badgesData.forEach(badge => {
+                const unlocked = state.stats.badges.includes(badge.id);
+                const bgStyle = unlocked ? 
+                    "bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200 text-indigo-900 shadow-sm" : 
+                    "bg-slate-50 border-slate-200 text-slate-400 opacity-60";
+
+                container.innerHTML += `
+                    <div class="border rounded-2xl p-3 flex items-start gap-2.5 transition-all duration-300 ${bgStyle}">
+                        <div class="p-1.5 rounded-lg ${unlocked ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-400'}">
+                            <i data-lucide="${badge.icon}" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold leading-tight">${badge.title}</h4>
+                            <p class="text-[10px] text-slate-500 mt-0.5 leading-snug">${badge.desc}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        // Initialize application on window load
+        window.onload = function() {
+            lucide.createIcons();
+            initLearnCompound();
+            renderBadges();
+        }
+    </script>
+</body>
+</html>
